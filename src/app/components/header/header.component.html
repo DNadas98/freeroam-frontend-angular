@@ -1,19 +1,21 @@
-<mat-toolbar class="w-full mx-auto justify-between items-baseline">
-  <button mat-button routerLink="/home">
-    <span class="text-lg">FreeRoam</span>
-    <span class="text-base"> - Hiking Companion</span>
-  </button>
-  <button mat-icon-button [matMenuTriggerFor]="menu">
-    <mat-icon>account_circle</mat-icon>
-  </button>
-  <mat-menu #menu="matMenu">
-    <button mat-menu-item routerLink="/login">
-      <mat-icon>login</mat-icon>
-      <span>Sign In</span>
+<header>
+  <mat-toolbar class="w-full mx-auto justify-between items-baseline">
+    <button mat-button routerLink="/home">
+      <span class="text-lg">FreeRoam</span>
+      <span class="text-sm"> - Hiking Companion App</span>
     </button>
-    <button mat-menu-item routerLink="/register">
-      <mat-icon>person_add</mat-icon>
-      <span>Sign Up</span>
+    <button mat-icon-button [matMenuTriggerFor]="menu">
+      <mat-icon>account_circle</mat-icon>
     </button>
-  </mat-menu>
-</mat-toolbar>
+    <mat-menu #menu="matMenu">
+      <button mat-menu-item routerLink="/login">
+        <mat-icon>login</mat-icon>
+        <span>Sign In</span>
+      </button>
+      <button mat-menu-item routerLink="/register">
+        <mat-icon>person_add</mat-icon>
+        <span>Sign Up</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+</header>
