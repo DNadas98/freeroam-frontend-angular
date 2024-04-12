@@ -4,6 +4,7 @@ import {
   MatDialogContent,
   MatDialogTitle
 } from "@angular/material/dialog";
+import {GeoLocation} from "../../../../model/map/GeoLocation";
 
 @Component({
   selector: "app-info-popup",
@@ -17,6 +18,6 @@ import {
 })
 export class InfoPopupComponent {
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { lat: number, lng: number }) {
+    @Inject(MAT_DIALOG_DATA) public data: GeoLocation) {
   }
 }
