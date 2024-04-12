@@ -8,9 +8,25 @@ import {GeoLocation} from "../../model/map/GeoLocation";
 
 @Injectable({providedIn: "root"})
 export class MapService {
-  private marker: Leaflet.Marker | null = null;
+  private _marker: Leaflet.Marker | null = null;
 
-  constructor(private dialog: MatDialog, private zone: NgZone) {
+  get marker(): Leaflet.Marker | null {
+    return this._marker;
+  }
+
+  set marker(value: Leaflet.Marker | null) {
+    this._marker = value;
+  }
+
+  get dialog(): MatDialog {
+    return this._dialog;
+  }
+
+  get zone(): NgZone {
+    return this._zone;
+  }
+
+  constructor(private readonly _dialog: MatDialog, private readonly _zone: NgZone) {
   }
 
   handleMapClick(e: Leaflet.LeafletMouseEvent, map: Leaflet.Map): void {
