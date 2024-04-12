@@ -1,0 +1,49 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$app-primary: mat.define-palette(mat.$cyan-palette);
+$app-accent: mat.define-palette(mat.$blue-grey-palette, A200, A100, A400);
+$app-warn: mat.define-palette(mat.$red-palette);
+
+$app-theme: mat.define-light-theme((
+  color: (
+    primary: $app-primary,
+    accent: $app-accent,
+    warn: $app-warn,
+  ),
+  typography: mat.define-typography-config(),
+  density: 0
+));
+
+
+$app-primary-dark: mat.define-palette(mat.$cyan-palette, 700, 500, 900);
+$app-accent-dark: mat.define-palette(mat.$blue-grey-palette, A200, A100, A400);
+$app-warn-dark: mat.define-palette(mat.$red-palette);
+
+$app-dark-theme: mat.define-dark-theme((
+  color: (
+    primary: $app-primary-dark,
+    accent: $app-accent-dark,
+    warn: $app-warn-dark,
+  )
+));
+
+@include mat.all-component-themes($app-theme);
+
+.app-dark-theme {
+  @include mat.all-component-colors($app-dark-theme);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
