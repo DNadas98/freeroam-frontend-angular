@@ -1,6 +1,8 @@
 @use '@angular/material' as mat;
-
 @include mat.core();
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 $app-primary: mat.define-palette(mat.$cyan-palette);
 $app-accent: mat.define-palette(mat.$blue-grey-palette, A200, A100, A400);
@@ -34,10 +36,6 @@ $app-dark-theme: mat.define-dark-theme((
 .app-dark-theme {
   @include mat.all-component-colors($app-dark-theme);
 }
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 html, body {
   height: 100%;
