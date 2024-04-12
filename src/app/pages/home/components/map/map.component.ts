@@ -3,7 +3,8 @@ import {LeafletModule} from "@asymmetrik/ngx-leaflet";
 import * as Leaflet from "leaflet";
 import {MapService} from "../../../../service/map/map.service";
 import {GeoLocation} from "../../../../model/map/GeoLocation";
-import {MapOptions} from "leaflet";
+import {Control, MapOptions} from "leaflet";
+import LayersObject = Control.LayersObject;
 
 @Component({
   selector: "app-map",
@@ -17,15 +18,23 @@ import {MapOptions} from "leaflet";
 export class MapComponent {
   private _geoLocation: GeoLocation = {lat: 0, lng: 0, alt: 0};
   private _map: Leaflet.Map | undefined;
-  private readonly _options: Leaflet.MapOptions = {
-    layers: [
-      new Leaflet.TileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap contributors"
-      })
-    ],
-    zoom: 12,
-    center: new Leaflet.LatLng(this._geoLocation.lat, this._geoLocation.lng)
+
+  private readonly baseLayers: LayersObject = {
+    "OpenStreetMap": new Leaflet.TileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
+    }),
+    "OpenTopoMap": new Leaflet.TileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+      attribution: "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)"
+    })
   };
+
+  private readonly _options: Leaflet.MapOptions = {
+    zoom: 12,
+    center: new Leaflet.LatLng(this._geoLocation.lat, this._geoLocation.lng),
+    layers: [this.baseLayers["OpenStreetMap"]]
+  };
+
+  private readonly overlayLayers: LayersObject = {};
 
   get geoLocation(): GeoLocation {
     return this._geoLocation;
@@ -64,6 +73,8 @@ export class MapComponent {
 
   onMapReady(map: Leaflet.Map) {
     this.map = map;
+    const layerControl = new Leaflet.Control.Layers(this.baseLayers, this.overlayLayers);
+    map.addControl(layerControl);
     this.map.on("click", (e: Leaflet.LeafletMouseEvent) => {
       this.mapService.handleMapClick(e, map);
     });
