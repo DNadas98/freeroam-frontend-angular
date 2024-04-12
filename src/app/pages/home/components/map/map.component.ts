@@ -1,7 +1,7 @@
 import {Component} from "@angular/core";
 import {LeafletModule} from "@asymmetrik/ngx-leaflet";
 import * as Leaflet from "leaflet";
-import {MapService} from "./map.service";
+import {MapService} from "../../../../service/map/map.service";
 
 @Component({
   selector: "app-map",
