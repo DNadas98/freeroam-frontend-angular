@@ -4,7 +4,10 @@ import {MatDialog} from "@angular/material/dialog";
 import {
   InfoPopupComponent
 } from "../../pages/home/components/info-popup/info-popup.component";
+import {GeoLocation2d} from "../../model/map/GeoLocation2d";
 import {GeoLocation} from "../../model/map/GeoLocation";
+import {HttpClient} from "@angular/common/http";
+import {environment} from "../../../environments/environment";
 
 @Injectable({providedIn: "root"})
 export class MapService {
@@ -26,27 +29,39 @@ export class MapService {
     return this._zone;
   }
 
-  constructor(private readonly _dialog: MatDialog, private readonly _zone: NgZone) {
+  constructor(private readonly _dialog: MatDialog, private readonly _zone: NgZone,
+              private readonly http: HttpClient) {
   }
 
-  handleMapClick(e: Leaflet.LeafletMouseEvent, map: Leaflet.Map): void {
+  async handleMapClick(e: Leaflet.LeafletMouseEvent, map: Leaflet.Map): Promise<void> {
     this.removeMarker(map);
-    this.marker = new Leaflet.Marker(e.latlng).addTo(map);
-    const currentLocation: GeoLocation = {
-      lat: e.latlng.lat ?? 0,
-      lng: e.latlng.lng ?? 0,
-      alt: e.latlng.alt ?? 0
+    const clickedLocation: GeoLocation2d = {
+      latitude: e.latlng.lat ?? 0, longitude: e.latlng.lng ?? 0
     };
-    if (isNaN(currentLocation.lat) || isNaN(currentLocation.lng)) {
+    if (isNaN(clickedLocation.latitude) || isNaN(clickedLocation.longitude)) {
       console.error("Invalid geolocation received");
       return;
     }
-    const dialogRef = this.zone.run(() => this.dialog.open(InfoPopupComponent, {
-      data: currentLocation, hasBackdrop: true
-    }));
 
-    dialogRef.afterClosed().subscribe((_result) => {
-      this.removeMarker(map);
+    const url = `${environment.SUMMITS_SERVICE_BASE_URL}/public/geolocation/elevation?lat=${clickedLocation.latitude}&lng=${clickedLocation.longitude}`;
+    this.http.get(url).subscribe({
+      next: (response: any) => {
+        const locationData:GeoLocation ={
+          latitude:response?.latitude,
+          longitude:response?.longitude,
+          elevation:response?.elevation
+        }
+        this.marker = new Leaflet.Marker(e.latlng).addTo(map);
+        const dialogRef = this._zone.run(() => this._dialog.open(InfoPopupComponent, {
+          data: locationData, hasBackdrop: true
+        }));
+        dialogRef.afterClosed().subscribe(() => {
+        });
+      },
+      error: (err) => {
+        console.error("Failed to fetch location data", err);
+        this.removeMarker(map);
+      }
     });
   }
 

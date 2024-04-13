@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: "https://mydomain.com/freeroam/api"
+  SUMMITS_SERVICE_BASE_URL: "https://mydomain.com/api/summits"
 };
