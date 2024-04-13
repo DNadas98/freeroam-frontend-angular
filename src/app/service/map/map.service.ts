@@ -5,18 +5,18 @@ import {
   InfoPopupComponent
 } from "../../pages/home/components/info-popup/info-popup.component";
 import {GeoLocation2d} from "../../model/map/GeoLocation2d";
-import {GeoLocation} from "../../model/map/GeoLocation";
-import {HttpClient} from "@angular/common/http";
+import {HttpClient, HttpResponse} from "@angular/common/http";
 import {environment} from "../../../environments/environment";
 import {icon} from "leaflet";
+import {DetailedGeoLocationDto} from "../../model/map/DetailedGeoLocationDto";
 
 @Injectable({providedIn: "root"})
 export class MapService {
   private _marker: Leaflet.Marker | null = null;
-  private readonly markerIcon:Leaflet.Icon=icon({
-    iconRetinaUrl:`${environment.MEDIA_BASE_URL}/marker-icon-2x.png`,
-    iconUrl:`${environment.MEDIA_BASE_URL}/marker-icon.png`,
-    shadowUrl:`${environment.MEDIA_BASE_URL}/marker-shadow.png`,
+  private readonly markerIcon: Leaflet.Icon = icon({
+    iconRetinaUrl: `${environment.MEDIA_BASE_URL}/marker-icon-2x.png`,
+    iconUrl: `${environment.MEDIA_BASE_URL}/marker-icon.png`,
+    shadowUrl: `${environment.MEDIA_BASE_URL}/marker-shadow.png`,
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
@@ -46,14 +46,15 @@ export class MapService {
       return;
     }
 
-    const url = `${environment.SUMMITS_SERVICE_BASE_URL}/public/geolocation/elevation?lat=${clickedLocation.latitude}&lng=${clickedLocation.longitude}`;
-    this.http.get(url).subscribe({
-      next: (response: any) => {
-        const locationData: GeoLocation = {
-          latitude: response?.latitude,
-          longitude: response?.longitude,
-          elevation: response?.elevation
-        };
+    const url = `${environment.SUMMITS_SERVICE_BASE_URL}/public/geolocation/details?latitude=${clickedLocation.latitude}&longitude=${clickedLocation.longitude}`;
+    this.http.get<DetailedGeoLocationDto>(url, {observe: "response"}).subscribe({
+      next: (response: HttpResponse<any>) => {
+        if (response?.status > 399 || response?.body?.error || !response?.body) {
+          console.error(response?.body?.error ?? "Failed to load location data");
+          this.removeMarker(map);
+          return;
+        }
+        const locationData: DetailedGeoLocationDto = response.body;
         this.marker = this.getStyledMarker(e.latlng);
         this.marker.addTo(map);
         const dialogRef = this.zone.run(() => this.dialog.open(InfoPopupComponent, {
@@ -64,7 +65,7 @@ export class MapService {
         });
       },
       error: (err) => {
-        console.error("Failed to fetch location data", err);
+        console.error("Failed to load location data", err);
         this.removeMarker(map);
       }
     });
