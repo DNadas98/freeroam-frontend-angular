@@ -25,18 +25,18 @@ export class MapComponent {
   private _map: Leaflet.Map | undefined;
 
   private readonly baseLayers: LayersObject = {
-    "OpenStreetMap": new Leaflet.TileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors"
-    }),
     "OpenTopoMap": new Leaflet.TileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
       attribution: "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)"
+    }),
+    "OpenStreetMap": new Leaflet.TileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
     })
   };
 
   private readonly _options: Leaflet.MapOptions = {
     zoom: 12,
     center: new Leaflet.LatLng(this._geoLocation.latitude, this._geoLocation.longitude),
-    layers: [this.baseLayers["OpenStreetMap"]]
+    layers: [this.baseLayers["OpenTopoMap"]]
   };
 
   private readonly overlayLayers: LayersObject = {};
