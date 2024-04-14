@@ -1,94 +1,151 @@
-import {Component} from "@angular/core";
+import {Component, NgZone, OnInit} from "@angular/core";
 import {LeafletModule} from "@asymmetrik/ngx-leaflet";
+import {HttpClientModule} from "@angular/common/http";
+import {
+  MatAutocomplete,
+  MatAutocompleteTrigger,
+  MatOption
+} from "@angular/material/autocomplete";
 import * as Leaflet from "leaflet";
+import {FormControl, ReactiveFormsModule} from "@angular/forms";
+import {AsyncPipe, NgForOf} from "@angular/common";
+import {MatFormField, MatInput} from "@angular/material/input";
 import {MapService} from "../../../../service/map/map.service";
 import {GeoLocation2d} from "../../../../model/map/GeoLocation2d";
-import {Control, MapOptions} from "leaflet";
+import {debounceTime, Observable, switchMap} from "rxjs";
+import {MatDialog} from "@angular/material/dialog";
+import {Control, icon} from "leaflet";
 import LayersObject = Control.LayersObject;
-import {HttpClientModule} from "@angular/common/http";
+import {DetailedGeoLocationDto} from "../../../../model/map/DetailedGeoLocationDto";
+import {InfoPopupComponent} from "../info-popup/info-popup.component";
+import {environment} from "../../../../../environments/environment";
 
 @Component({
   selector: "app-map",
+  templateUrl: "./map.component.html",
+  styleUrls: ["./map.component.scss"],
   standalone: true,
   imports: [
     LeafletModule,
-    HttpClientModule
+    HttpClientModule,
+    MatAutocomplete,
+    ReactiveFormsModule,
+    MatAutocompleteTrigger,
+    MatOption,
+    AsyncPipe,
+    NgForOf,
+    MatInput,
+    MatFormField
   ],
-  providers:[
-    MapService
-  ],
-  templateUrl: "./map.component.html",
-  styleUrl: "./map.component.scss"
+  providers: [MapService]
 })
-export class MapComponent {
+export class MapComponent implements OnInit {
   private _geoLocation: GeoLocation2d = {latitude: 0, longitude: 0};
   private _map: Leaflet.Map | undefined;
+  private _marker: Leaflet.Marker | null = null;
 
-  private readonly baseLayers: LayersObject = {
-    "OpenTopoMap": new Leaflet.TileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
-      attribution: "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)"
-    }),
-    "OpenStreetMap": new Leaflet.TileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors"
-    })
-  };
+  searchControl = new FormControl();
+  filteredOptions: Observable<any[]> | undefined;
 
-  private readonly _options: Leaflet.MapOptions = {
-    zoom: 12,
-    center: new Leaflet.LatLng(this._geoLocation.latitude, this._geoLocation.longitude),
-    layers: [this.baseLayers["OpenTopoMap"]]
-  };
-
-  private readonly overlayLayers: LayersObject = {};
-
-  get geoLocation(): GeoLocation2d {
-    return this._geoLocation;
+  constructor(private mapService: MapService, private dialog: MatDialog, private zone: NgZone) {
   }
 
-  set geoLocation(value: GeoLocation2d) {
-    this._geoLocation = value;
+  ngOnInit() {
+    this.initializeGeoLocation();
+    this.filteredOptions = this.searchControl.valueChanges.pipe(
+      debounceTime(500),
+      switchMap(value => this.mapService.fetchSearchResults(value))
+    );
   }
 
-  get map(): Leaflet.Map | undefined {
-    return this._map;
-  }
-
-  set map(value: Leaflet.Map | undefined) {
-    this._map = value;
-  }
-
-  get options(): MapOptions {
-    return this._options;
-  }
-
-  constructor(private mapService: MapService) {
-    navigator.geolocation.getCurrentPosition((position) => {
-      const {latitude, longitude} = position.coords;
-      if (isNaN(latitude) || isNaN(longitude)) {
-        console.error("Invalid geolocation received");
-        this.updateMapCenter();
-        return;
-      }
-      this.geoLocation = {latitude: latitude ?? 0, longitude: longitude ?? 0};
-      this.updateMapCenter();
-    }, (positionError) => {
-      console.error(positionError);
-      this.updateMapCenter();
+  initializeGeoLocation() {
+    navigator.geolocation.getCurrentPosition(position => {
+      this.updateGeoLocation(position.coords.latitude, position.coords.longitude);
+    }, error => {
+      console.error(error);
+      this.updateGeoLocation(0, 0);
     });
+  }
+
+  updateGeoLocation(latitude: number, longitude: number) {
+    this._geoLocation = {latitude, longitude};
+    if (this._map) {
+      this._map.setView(new Leaflet.LatLng(latitude, longitude), this._map.getZoom() || 12);
+    }
   }
 
   onMapReady(map: Leaflet.Map) {
-    this.map = map;
-    const layerControl = new Leaflet.Control.Layers(this.baseLayers, this.overlayLayers);
-    map.addControl(layerControl);
-    this.map.on("click", (e: Leaflet.LeafletMouseEvent) => {
-      this.mapService.handleMapClick(e, map).then();
+    this._map = map;
+    const baseLayers = this.getBaseLayers();
+    baseLayers["OpenTopoMap"].addTo(map);
+
+    map.addControl(new Leaflet.Control.Layers(baseLayers, {}));
+    map.on("click", e => this.handleMapClick(e));
+    if (this._geoLocation.latitude !== 0 || this._geoLocation.longitude !== 0) {
+      map.setView(new Leaflet.LatLng(this._geoLocation.latitude, this._geoLocation.longitude), 12);
+    }
+  }
+
+  getBaseLayers(): LayersObject {
+    return {
+      "OpenTopoMap": new Leaflet.TileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+        attribution: "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)"
+      }),
+      "OpenStreetMap": new Leaflet.TileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors"
+      })
+    };
+  }
+
+  handleMapClick(e: Leaflet.LeafletMouseEvent) {
+    if (!this._map) return;
+    this.mapService.fetchDetailedLocation(e.latlng.lat, e.latlng.lng).subscribe(data => {
+      this.showInfoPopup(data);
+      this.placeMarker(e.latlng);
     });
   }
 
-  private updateMapCenter() {
-    if (this.map) {
-      this.map.setView(new Leaflet.LatLng(this.geoLocation.latitude, this.geoLocation.longitude), this.map.getZoom());
+  placeMarker(latlng: Leaflet.LatLng) {
+    if (!this._map) return;
+    if (this._marker) {
+      this._map.removeLayer(this._marker);
     }
+    const markerIcon: Leaflet.Icon = icon({
+      iconRetinaUrl: `${environment.MEDIA_BASE_URL}/marker-icon-2x.png`,
+      iconUrl: `${environment.MEDIA_BASE_URL}/marker-icon.png`,
+      shadowUrl: `${environment.MEDIA_BASE_URL}/marker-shadow.png`,
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      tooltipAnchor: [16, -28],
+      shadowSize: [41, 41]
+    });
+    this._marker = Leaflet.marker(latlng, {
+      icon: markerIcon
+    }).addTo(this._map);
+  }
+
+  showInfoPopup(data: DetailedGeoLocationDto) {
+    this.zone.run(() => {
+      const dialogRef = this.dialog.open(InfoPopupComponent, {
+        data: data,
+        hasBackdrop: true
+      });
+      dialogRef.afterClosed().subscribe(() => {
+        if (this._marker && this._map) {
+          this._map.removeLayer(this._marker);
+          this._marker = null;
+        }
+      });
+    });
+  }
+
+  onOptionSelected(event: any): void {
+    const {latitude, longitude} = event.option.value;
+    this.updateGeoLocation(latitude, longitude);
+    this.placeMarker(new Leaflet.LatLng(latitude, longitude));
+    this.mapService.fetchDetailedLocation(latitude, longitude).subscribe(data => {
+      this.showInfoPopup(data);
+    });
   }
 }

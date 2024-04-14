@@ -1,4 +1,15 @@
-<section class="flex flex-grow">
-  <div class="map" leaflet [leafletOptions]="options"
-       (leafletMapReady)="onMapReady($event)"></div>
-</section>
+<div class="map-container flex flex-grow relative">
+  <div class="map z-0" leaflet (leafletMapReady)="onMapReady($event)"></div>
+  <div class="search-bar absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 z-10">
+    <mat-form-field>
+      <input matInput type="search" placeholder="Search Location"
+             [formControl]="searchControl"
+             [matAutocomplete]="auto">
+    </mat-form-field>
+    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)">
+      <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
+        {{ option.display_name }}
+      </mat-option>
+    </mat-autocomplete>
+  </div>
+</div>
