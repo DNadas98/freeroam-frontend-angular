@@ -1,35 +1,35 @@
 <div>
-<mat-dialog-content class="w-full max-w-lg flex flex-col gap-2">
-  <h1 *ngIf="data?.properties?.display_name" class="text-md">{{
-    data.properties.display_name }}</h1>
-  <mat-divider></mat-divider>
-  <div class="container flex justify-between items-center gap-2 my-1">
-    <span class="text-lg font-medium">Latitude:</span>
-    <span class="text-lg">{{ data.latitude.toFixed(4) }}</span>
-  </div>
-  <div class="container flex justify-between items-center gap-2 my-1">
-    <span class="text-lg font-medium">Longitude:</span>
-    <span class="text-lg">{{ data.longitude.toFixed(4) }}</span>
-  </div>
-  <div class="container flex justify-between items-center gap-2 my-1">
-    <span class="text-lg font-medium">Elevation:</span>
-    <span class="text-lg">{{ data.elevation.toFixed(2) }} m</span>
-  </div>
-  <ng-container *ngIf="data.properties">
-    <ng-container *ngIf="data.properties.address">
-      <div *ngIf="data.properties.address?.city"
-           class="container flex justify-between items-center gap-2 my-1">
-        <span class="text-lg font-medium">City:</span>
-        <span class="text-lg">{{ data.properties.address?.city }}</span>
-      </div>
-      <div *ngIf="data.properties.address?.country"
-           class="container flex justify-between items-center gap-2 my-1">
-        <span class="text-lg font-medium">Country:</span>
-        <span class="text-lg">{{ data.properties.address?.country }}</span>
-      </div>
+  <mat-dialog-content class="w-full max-w-lg flex flex-col gap-2">
+    <h1 *ngIf="data?.properties?.display_name" class="text-md">{{
+      data.properties.display_name }}</h1>
+    <mat-divider></mat-divider>
+    <div class="container flex justify-between items-center gap-2 my-1">
+      <span class="text-lg font-medium">Latitude:</span>
+      <span class="text-lg">{{ data.latitude.toFixed(4) }}</span>
+    </div>
+    <div class="container flex justify-between items-center gap-2 my-1">
+      <span class="text-lg font-medium">Longitude:</span>
+      <span class="text-lg">{{ data.longitude.toFixed(4) }}</span>
+    </div>
+    <div class="container flex justify-between items-center gap-2 my-1">
+      <span class="text-lg font-medium">Elevation:</span>
+      <span class="text-lg">{{ data.elevation.toFixed(2) }} m</span>
+    </div>
+    <ng-container *ngIf="data.properties">
+      <ng-container *ngIf="data.properties.address">
+        <div *ngIf="data.properties.address?.city"
+             class="container flex justify-between items-center gap-2 my-1">
+          <span class="text-lg font-medium">City:</span>
+          <span class="text-lg">{{ data.properties.address?.city }}</span>
+        </div>
+        <div *ngIf="data.properties.address?.country"
+             class="container flex justify-between items-center gap-2 my-1">
+          <span class="text-lg font-medium">Country:</span>
+          <span class="text-lg">{{ data.properties.address?.country }}</span>
+        </div>
+      </ng-container>
     </ng-container>
-  </ng-container>
-</mat-dialog-content>
+  </mat-dialog-content>
   <mat-dialog-actions>
     <button mat-button>Explore Nearby Summits</button>
     <button mat-button mat-dialog-close>Close</button>

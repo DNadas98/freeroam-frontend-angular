@@ -12,13 +12,16 @@ import {AsyncPipe, NgForOf} from "@angular/common";
 import {MatFormField, MatInput} from "@angular/material/input";
 import {MapService} from "../../../../service/map/map.service";
 import {GeoLocation2d} from "../../../../model/map/GeoLocation2d";
-import {debounceTime, Observable, switchMap} from "rxjs";
+import {catchError, debounceTime, Observable, of, switchMap} from "rxjs";
 import {MatDialog} from "@angular/material/dialog";
 import {Control, icon} from "leaflet";
 import LayersObject = Control.LayersObject;
 import {DetailedGeoLocationDto} from "../../../../model/map/DetailedGeoLocationDto";
 import {InfoPopupComponent} from "../info-popup/info-popup.component";
 import {environment} from "../../../../../environments/environment";
+import {
+  AutoCompleteGeoLocationResult
+} from "../../../../model/map/AutoCompleteGeoLocationDto";
 
 @Component({
   selector: "app-map",
@@ -54,7 +57,13 @@ export class MapComponent implements OnInit {
     this.initializeGeoLocation();
     this.filteredOptions = this.searchControl.valueChanges.pipe(
       debounceTime(500),
-      switchMap(value => this.mapService.fetchSearchResults(value))
+      switchMap(value =>
+        this.mapService.fetchSearchResults(value).pipe(
+          catchError(_err => {
+            return of([]);
+          })
+        )
+      )
     );
   }
 
@@ -147,5 +156,13 @@ export class MapComponent implements OnInit {
     this.mapService.fetchDetailedLocation(latitude, longitude).subscribe(data => {
       this.showInfoPopup(data);
     });
+    this.searchControl.setValue("");
+  }
+
+  displaySelectedOption(location: AutoCompleteGeoLocationResult | null): string {
+    if (!location) {
+      return "";
+    }
+    return `${location.name}`;
   }
 }

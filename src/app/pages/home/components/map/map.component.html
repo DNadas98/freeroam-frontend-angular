@@ -1,14 +1,18 @@
 <div class="map-container flex flex-grow relative">
   <div class="map z-0" leaflet (leafletMapReady)="onMapReady($event)"></div>
-  <div class="search-bar absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 z-10">
-    <mat-form-field>
+  <div
+    class="search-bar absolute top-0 left-1/2 transform -translate-x-1/2 mt-2 z-10 w-[60vw] max-w-xl">
+    <mat-form-field class="w-full">
       <input matInput type="search" placeholder="Search Location"
              [formControl]="searchControl"
              [matAutocomplete]="auto">
     </mat-form-field>
-    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onOptionSelected($event)">
+    <mat-autocomplete #auto="matAutocomplete"
+                      (optionSelected)="onOptionSelected($event)"
+                      [displayWith]="displaySelectedOption">
       <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
-        {{ option.display_name }}
+        {{ option.country_code }} - {{ option.name }}
+        - {{ option.admin1 ? option.admin1 + ', ' : '' }}{{ option.country ?? '' }}
       </mat-option>
     </mat-autocomplete>
   </div>
