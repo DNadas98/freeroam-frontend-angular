@@ -49,6 +49,16 @@ export class MapComponent implements OnInit {
   private readonly _DETAILED_ZOOM_LEVEL: number = 12;
   private readonly _MAX_ZOOM_LEVEL = 16;
   private readonly _MIN_ZOOM_LEVEL = 4;
+  private readonly _markerIcon: Leaflet.Icon = icon({
+    iconRetinaUrl: `${environment.MEDIA_BASE_URL}/marker-icon-2x.png`,
+    iconUrl: `${environment.MEDIA_BASE_URL}/marker-icon.png`,
+    shadowUrl: `${environment.MEDIA_BASE_URL}/marker-shadow.png`,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    tooltipAnchor: [16, -28],
+    shadowSize: [41, 41]
+  });
   private readonly _baseLayers: LayersObject = {
     "OpenTopoMap": new Leaflet.TileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
       attribution: "Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)"
@@ -57,12 +67,39 @@ export class MapComponent implements OnInit {
       attribution: "&copy; OpenStreetMap contributors"
     })
   };
+  private readonly _overLayers: Control.LayersObject = {
+    "Summits": new Leaflet.GeoJSON(undefined, {
+      style: (_feature) => {
+        return {color: "#ffa55a", weight: 5, opacity: 0.65};
+      },
+      pointToLayer: (_feature, latlng) => {
+        return Leaflet.circleMarker(latlng, {
+          radius: 6,
+          fillColor: "#ffa55a",
+          color: "#000",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.7
+        });
+      },
+      onEachFeature: (feature, layer) => {
+        layer.bindPopup("");
+        layer.on("click", () => {
+          layer.closePopup();
+          const data: DetailedGeoLocationDto = feature.properties;
+          this.showInfoPopup(data);
+          this.updateGeoLocation(data.latitude, data.longitude);
+          this.zoomIn();
+        });
+      }
+    })
+  };
+  private _summitsLayerVisible: boolean = false;
   private readonly _searchControl = new FormControl();
   private _geoLocation: GeoLocation2d = {latitude: 47.5, longitude: 19};  //Budapest
   private _currentZoomLevel: number = 12;
   private _map: Leaflet.Map | undefined;
   private _marker: Leaflet.Marker | null = null;
-  private _peaksGeoJsonLayer: Leaflet.GeoJSON | null = null;
   private _filteredOptions: Observable<any[]> | undefined;
 
   constructor(private mapService: MapService, private dialog: MatDialog, private zone: NgZone) {
@@ -107,14 +144,25 @@ export class MapComponent implements OnInit {
 
   onMapReady(map: Leaflet.Map) {
     this._map = map;
-    const baseLayers = this._baseLayers;
     map.setMaxZoom(this._MAX_ZOOM_LEVEL);
     map.setMinZoom(this._MIN_ZOOM_LEVEL);
     map.setZoom(this._DEFAULT_ZOOM_LEVEL);
-    baseLayers["OpenTopoMap"].addTo(map);
-    map.addControl(new Leaflet.Control.Layers(baseLayers, {}));
+    this._baseLayers["OpenTopoMap"].addTo(map);
+    map.on("overlayadd", event => {
+      if (event.layer === this._overLayers["Summits"]) {
+        this._summitsLayerVisible = true;
+        this.updateGeoJsonLayer(); // Fetch data immediately if the layer is turned on
+      }
+    });
+    map.on("overlayremove", event => {
+      if (event.layer === this._overLayers["Summits"]) {
+        this._summitsLayerVisible = false;
+      }
+    });
+    this._overLayers["Summits"].addTo(map);
+    map.addControl(new Leaflet.Control.Layers(this._baseLayers, this._overLayers));
     if (this._geoLocation.latitude !== 0 || this._geoLocation.longitude !== 0) {
-      map.setView(new Leaflet.LatLng(this._geoLocation.latitude, this._geoLocation.longitude), 12);
+      map.setView(new Leaflet.LatLng(this._geoLocation.latitude, this._geoLocation.longitude), this._DEFAULT_ZOOM_LEVEL);
     }
     map.on("click", e => this.handleMapClick(e));
     map.on("moveend", () => this.updateGeoJsonLayer());
@@ -156,21 +204,17 @@ export class MapComponent implements OnInit {
 
   private updateGeoJsonLayer() {
     this.zone.run(() => {
-      if (!this._map) {
+      if (!this._map || !this._overLayers["Summits"] || !this._summitsLayerVisible) {
         return;
       }
       if (this._map.getZoom() >= this._DETAILED_ZOOM_LEVEL) {
-        if (!this._peaksGeoJsonLayer) {
-          this._peaksGeoJsonLayer = this.getLeafletGeoJson().addTo(this._map);
-        }
         this.mapService.fetchGeoJsonData(this._map.getBounds())
           .subscribe(data => {
             const geoJson = this.createGeoJson(data);
-            this._peaksGeoJsonLayer?.clearLayers().addData(geoJson as any);
+            (this._overLayers["Summits"] as Leaflet.GeoJSON).clearLayers().addData(geoJson as any);
           });
-      } else if (this._peaksGeoJsonLayer) {
-        this._map.removeLayer(this._peaksGeoJsonLayer);
-        this._peaksGeoJsonLayer = null;
+      } else {
+        (this._overLayers["Summits"] as Leaflet.GeoJSON).clearLayers();
       }
     });
   }
@@ -180,18 +224,8 @@ export class MapComponent implements OnInit {
     if (this._marker) {
       this._map.removeLayer(this._marker);
     }
-    const markerIcon: Leaflet.Icon = icon({
-      iconRetinaUrl: `${environment.MEDIA_BASE_URL}/marker-icon-2x.png`,
-      iconUrl: `${environment.MEDIA_BASE_URL}/marker-icon.png`,
-      shadowUrl: `${environment.MEDIA_BASE_URL}/marker-shadow.png`,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      tooltipAnchor: [16, -28],
-      shadowSize: [41, 41]
-    });
     this._marker = Leaflet.marker(latlng, {
-      icon: markerIcon
+      icon: this._markerIcon
     }).addTo(this._map);
   }
 
@@ -232,34 +266,6 @@ export class MapComponent implements OnInit {
     if (this._map) {
       this._map.setView(new Leaflet.LatLng(latitude, longitude), this._map.getZoom() || 12);
     }
-  }
-
-  private getLeafletGeoJson() {
-    return Leaflet.geoJSON(undefined, {
-      style: (_feature) => {
-        return {color: "#ffa55a", weight: 5, opacity: 0.65};
-      },
-      pointToLayer: (_feature, latlng) => {
-        return Leaflet.circleMarker(latlng, {
-          radius: 6,
-          fillColor: "#ffa55a",
-          color: "#000",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.7
-        });
-      },
-      onEachFeature: (feature, layer) => {
-        layer.bindPopup("");
-        layer.on("click", () => {
-          layer.closePopup();
-          const data: DetailedGeoLocationDto = feature.properties;
-          this.showInfoPopup(data);
-          this.updateGeoLocation(data.latitude, data.longitude);
-          this.zoomIn();
-        });
-      }
-    });
   }
 
   private createGeoJson(data: DetailedGeoLocationDto[]) {
