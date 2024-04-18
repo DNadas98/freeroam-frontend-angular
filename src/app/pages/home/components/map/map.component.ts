@@ -22,6 +22,7 @@ import {environment} from "../../../../../environments/environment";
 import {
   AutoCompleteGeoLocationResult
 } from "../../../../model/map/AutoCompleteGeoLocationDto";
+import {MatIcon} from "@angular/material/icon";
 
 @Component({
   selector: "app-map",
@@ -38,12 +39,17 @@ import {
     AsyncPipe,
     NgForOf,
     MatInput,
-    MatFormField
+    MatFormField,
+    MatIcon
   ],
   providers: [MapService]
 })
 export class MapComponent implements OnInit {
-  private _geoLocation: GeoLocation2d = {latitude: 0, longitude: 0};
+  private _geoLocation: GeoLocation2d = {latitude: 47.5, longitude: 19};  //Budapest
+  private _currentZoomLevel: number = 12;
+  private readonly _DEFAULT_ZOOM_LEVEL = 12;
+  private readonly _MAX_ZOOM_LEVEL = 16;
+  private readonly _MIN_ZOOM_LEVEL = 4;
   private _map: Leaflet.Map | undefined;
   private _marker: Leaflet.Marker | null = null;
 
@@ -51,6 +57,10 @@ export class MapComponent implements OnInit {
   filteredOptions: Observable<any[]> | undefined;
 
   constructor(private mapService: MapService, private dialog: MatDialog, private zone: NgZone) {
+  }
+
+  get currentZoomLevel(): number {
+    return this._currentZoomLevel;
   }
 
   ngOnInit() {
@@ -72,7 +82,7 @@ export class MapComponent implements OnInit {
       this.updateGeoLocation(position.coords.latitude, position.coords.longitude);
     }, error => {
       console.error(error);
-      this.updateGeoLocation(0, 0);
+      this.updateGeoLocation(this._geoLocation.latitude, this._geoLocation.longitude);
     });
   }
 
@@ -86,10 +96,13 @@ export class MapComponent implements OnInit {
   onMapReady(map: Leaflet.Map) {
     this._map = map;
     const baseLayers = this.getBaseLayers();
+    map.setMaxZoom(this._MAX_ZOOM_LEVEL);
+    map.setMinZoom(this._MIN_ZOOM_LEVEL);
+    map.setZoom(this._DEFAULT_ZOOM_LEVEL);
     baseLayers["OpenTopoMap"].addTo(map);
-
     map.addControl(new Leaflet.Control.Layers(baseLayers, {}));
     map.on("click", e => this.handleMapClick(e));
+    map.on("zoomend", () => this.updateZoomLevel());
     if (this._geoLocation.latitude !== 0 || this._geoLocation.longitude !== 0) {
       map.setView(new Leaflet.LatLng(this._geoLocation.latitude, this._geoLocation.longitude), 12);
     }
@@ -108,9 +121,15 @@ export class MapComponent implements OnInit {
 
   handleMapClick(e: Leaflet.LeafletMouseEvent) {
     if (!this._map) return;
-    this.mapService.fetchDetailedLocation(e.latlng.lat, e.latlng.lng).subscribe(data => {
+    const {lat, lng} = e.latlng;
+    this.mapService.fetchDetailedLocation(lat, lng).subscribe(data => {
       this.showInfoPopup(data);
       this.placeMarker(e.latlng);
+      this.updateGeoLocation(lat, lng);
+      const zoom = this._map?.getZoom();
+      if (zoom && zoom < this._DEFAULT_ZOOM_LEVEL) {
+        this._map?.setZoom(this._DEFAULT_ZOOM_LEVEL);
+      }
     });
   }
 
@@ -164,5 +183,13 @@ export class MapComponent implements OnInit {
       return "";
     }
     return `${location.name}`;
+  }
+
+  private updateZoomLevel() {
+    this.zone.run(() => {
+      if (this._map) {
+        this._currentZoomLevel = this._map.getZoom();
+      }
+    });
   }
 }
