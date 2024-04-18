@@ -1,7 +1,7 @@
 export interface DetailedGeoLocationDto {
   latitude: number;
   longitude: number;
-  elevation: number;
+  elevation?: number;
   displayName: string;
   properties: GeoJsonProperties;
   licence: string;

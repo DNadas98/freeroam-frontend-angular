@@ -1,8 +1,9 @@
 <div>
-  <mat-dialog-content class="w-full max-w-lg flex flex-col gap-2">
-    <h1 *ngIf="data?.properties?.display_name" class="text-md">{{
-      data.properties.display_name }}</h1>
-    <mat-divider></mat-divider>
+  <mat-dialog-content class="w-full max-w-lg flex flex-col gap-2 mb-0 pb-0">
+    <ng-container *ngIf="data?.properties?.display_name">
+      <h1 class="text-md">{{data.properties.display_name }}</h1>
+      <mat-divider></mat-divider>
+    </ng-container>
     <div class="container flex justify-between items-center gap-2 my-1">
       <span class="text-lg font-medium">Latitude:</span>
       <span class="text-lg">{{ data.latitude.toFixed(4) }}</span>
@@ -11,7 +12,8 @@
       <span class="text-lg font-medium">Longitude:</span>
       <span class="text-lg">{{ data.longitude.toFixed(4) }}</span>
     </div>
-    <div class="container flex justify-between items-center gap-2 my-1">
+    <div *ngIf="data.elevation"
+         class="container flex justify-between items-center gap-2 my-1">
       <span class="text-lg font-medium">Elevation:</span>
       <span class="text-lg">{{ data.elevation.toFixed(2) }} m</span>
     </div>
@@ -29,9 +31,21 @@
         </div>
       </ng-container>
     </ng-container>
+    <ng-container>
+      <span class="text-xs">©
+        <a href="https://www.openstreetmap.org/copyright"
+           rel="noopener noreferrer"
+           target="_blank">
+          OpenStreetMap
+      </a> contibutors</span>
+    </ng-container>
   </mat-dialog-content>
-  <mat-dialog-actions>
-    <button mat-button>Explore Nearby Summits</button>
-    <button mat-button mat-dialog-close>Close</button>
+  <mat-dialog-actions
+    class="flex flex-col md:flex-row gap-2 items-stretch justify-stretch">
+    <button class="text-left w-full md:w-fit" mat-button>
+      Explore Nearby Trails
+    </button>
+    <button class="text-left w-full md:w-fit" mat-button>Add New Trail</button>
+    <button class="text-left w-full md:w-fit" mat-button mat-dialog-close>Close</button>
   </mat-dialog-actions>
 </div>

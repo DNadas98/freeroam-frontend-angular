@@ -7,6 +7,7 @@ import {
   AutoCompleteGeoLocationDto,
   AutoCompleteGeoLocationResult
 } from "../../model/map/AutoCompleteGeoLocationDto";
+import * as Leaflet from "leaflet";
 
 @Injectable({providedIn: "root"})
 export class MapService {
@@ -29,13 +30,40 @@ export class MapService {
     );
   }
 
-  fetchDetailedLocation(latitude: number, longitude: number): Observable<DetailedGeoLocationDto> {
-    const url = `${environment.SUMMITS_SERVICE_BASE_URL}/public/geolocation/details?latitude=${latitude}&longitude=${longitude}`;
+  fetchDetailedLocation(latitude: number, longitude: number, isPeak: boolean = false): Observable<DetailedGeoLocationDto> {
+    const url = `${environment.SUMMITS_SERVICE_BASE_URL}/public/geolocation/details?latitude=${latitude}&longitude=${longitude}&isPeak=${isPeak}`;
     return this.http.get<DetailedGeoLocationDto>(url).pipe(
       catchError(err => {
         console.error("Failed to load location data", err);
         return throwError(() => new Error("Failed to fetch location details"));
       })
     );
+  }
+
+  fetchGeoJsonData(bounds: Leaflet.LatLngBounds): Observable<DetailedGeoLocationDto[]> {
+    const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
+    const query = `[out:json][timeout:25];(node["natural"="peak"](${bbox}););out body;`;
+    const url = `${environment.OVERPASS_API_URL}?data=${encodeURIComponent(query)}`;
+
+    return this.http.get<any>(url).pipe(
+      map(response => this.toDetailedGeoLocationDtos(response.elements)),
+      catchError(err => {
+        console.error("Failed to load peaks data", err);
+        return throwError(() => new Error("Failed to fetch peaks data"));
+      })
+    );
+  }
+
+  private toDetailedGeoLocationDtos(elements: any[]): DetailedGeoLocationDto[] {
+    return elements.map(element => ({
+      latitude: element.lat,
+      longitude: element.lon,
+      elevation: element?.tags?.ele ? parseFloat(element.tags.ele) : undefined,
+      displayName: element?.tags?.name,
+      properties: {
+        display_name: element?.tags?.name
+      },
+      licence: "Data provided by OpenStreetMap contributors"
+    }));
   }
 }
