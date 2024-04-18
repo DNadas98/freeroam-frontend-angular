@@ -9,7 +9,7 @@ import {
 import * as Leaflet from "leaflet";
 import {Control, icon} from "leaflet";
 import {FormControl, ReactiveFormsModule} from "@angular/forms";
-import {AsyncPipe, NgForOf} from "@angular/common";
+import {AsyncPipe, NgForOf, NgIf} from "@angular/common";
 import {MatFormField, MatInput} from "@angular/material/input";
 import {MapService} from "../../../../service/map/map.service";
 import {GeoLocation2d} from "../../../../model/map/GeoLocation2d";
@@ -40,12 +40,14 @@ import LayersObject = Control.LayersObject;
     NgForOf,
     MatInput,
     MatFormField,
-    MatIcon
+    MatIcon,
+    NgIf
   ],
   providers: [MapService]
 })
 export class MapComponent implements OnInit {
   private readonly _DEFAULT_ZOOM_LEVEL = 12;
+  private readonly _ZOOMED_IN_ZOOM_LEVEL = 14;
   private readonly _DETAILED_ZOOM_LEVEL: number = 12;
   private readonly _MAX_ZOOM_LEVEL = 16;
   private readonly _MIN_ZOOM_LEVEL = 4;
@@ -87,9 +89,8 @@ export class MapComponent implements OnInit {
         layer.on("click", () => {
           layer.closePopup();
           const data: DetailedGeoLocationDto = feature.properties;
+          this.updateGeoLocation(data.latitude, data.longitude, this._ZOOMED_IN_ZOOM_LEVEL);
           this.showInfoPopup(data);
-          this.updateGeoLocation(data.latitude, data.longitude);
-          this.zoomIn();
         });
       }
     })
@@ -128,9 +129,7 @@ export class MapComponent implements OnInit {
           catchError(_err => {
             return of([]);
           })
-        )
-      )
-    );
+        )));
   }
 
   initializeGeoLocation() {
@@ -147,11 +146,15 @@ export class MapComponent implements OnInit {
     map.setMaxZoom(this._MAX_ZOOM_LEVEL);
     map.setMinZoom(this._MIN_ZOOM_LEVEL);
     map.setZoom(this._DEFAULT_ZOOM_LEVEL);
+    map.setView(new Leaflet.LatLng(this._geoLocation.latitude, this._geoLocation.longitude), this._DEFAULT_ZOOM_LEVEL);
     this._baseLayers["OpenTopoMap"].addTo(map);
+    this._overLayers["Summits"].addTo(map);
+    this._summitsLayerVisible = true;
+    map.addControl(new Leaflet.Control.Layers(this._baseLayers, this._overLayers));
     map.on("overlayadd", event => {
       if (event.layer === this._overLayers["Summits"]) {
         this._summitsLayerVisible = true;
-        this.updateGeoJsonLayer(); // Fetch data immediately if the layer is turned on
+        this.updateGeoJsonLayer();
       }
     });
     map.on("overlayremove", event => {
@@ -159,11 +162,6 @@ export class MapComponent implements OnInit {
         this._summitsLayerVisible = false;
       }
     });
-    this._overLayers["Summits"].addTo(map);
-    map.addControl(new Leaflet.Control.Layers(this._baseLayers, this._overLayers));
-    if (this._geoLocation.latitude !== 0 || this._geoLocation.longitude !== 0) {
-      map.setView(new Leaflet.LatLng(this._geoLocation.latitude, this._geoLocation.longitude), this._DEFAULT_ZOOM_LEVEL);
-    }
     map.on("click", e => this.handleMapClick(e));
     map.on("moveend", () => this.updateGeoJsonLayer());
     map.on("zoomend", () => {
@@ -176,9 +174,9 @@ export class MapComponent implements OnInit {
 
   onOptionSelected(event: any): void {
     const {latitude, longitude} = event.option.value;
-    this.updateGeoLocation(latitude, longitude);
-    this.placeMarker(new Leaflet.LatLng(latitude, longitude));
     this.mapService.fetchDetailedLocation(latitude, longitude).subscribe(data => {
+      this.placeMarker(new Leaflet.LatLng(latitude, longitude));
+      this.updateGeoLocation(latitude, longitude, this._ZOOMED_IN_ZOOM_LEVEL);
       this.showInfoPopup(data);
     });
     this._searchControl.setValue("");
@@ -195,10 +193,9 @@ export class MapComponent implements OnInit {
     if (!this._map) return;
     const {lat, lng} = e.latlng;
     this.mapService.fetchDetailedLocation(lat, lng).subscribe(data => {
-      this.showInfoPopup(data);
       this.placeMarker(e.latlng);
-      this.updateGeoLocation(lat, lng);
-      this.zoomIn();
+      this.updateGeoLocation(lat, lng, this._ZOOMED_IN_ZOOM_LEVEL);
+      this.showInfoPopup(data);
     });
   }
 
@@ -207,7 +204,8 @@ export class MapComponent implements OnInit {
       if (!this._map || !this._overLayers["Summits"] || !this._summitsLayerVisible) {
         return;
       }
-      if (this._map.getZoom() >= this._DETAILED_ZOOM_LEVEL) {
+      if (this.currentZoomLevel >= this._DETAILED_ZOOM_LEVEL) {
+        console.log(this.currentZoomLevel);
         this.mapService.fetchGeoJsonData(this._map.getBounds())
           .subscribe(data => {
             const geoJson = this.createGeoJson(data);
@@ -245,14 +243,6 @@ export class MapComponent implements OnInit {
     });
   }
 
-  private zoomIn() {
-    const zoom = this._map?.getZoom();
-    if (zoom && zoom < this._DEFAULT_ZOOM_LEVEL) {
-      this._map?.setZoom(this._DEFAULT_ZOOM_LEVEL);
-      this.updateZoomLevel();
-    }
-  }
-
   private updateZoomLevel() {
     this.zone.run(() => {
       if (this._map) {
@@ -261,11 +251,18 @@ export class MapComponent implements OnInit {
     });
   }
 
-  private updateGeoLocation(latitude: number, longitude: number) {
-    this._geoLocation = {latitude, longitude};
-    if (this._map) {
-      this._map.setView(new Leaflet.LatLng(latitude, longitude), this._map.getZoom() || 12);
-    }
+  private updateGeoLocation(latitude: number, longitude: number, newZoomLevel?: number) {
+    this.zone.run(() => {
+      this._geoLocation = {latitude, longitude};
+      if (this._map) {
+        let zoom = this.currentZoomLevel ?? this._DEFAULT_ZOOM_LEVEL;
+        if (newZoomLevel && zoom < newZoomLevel) {
+          zoom = newZoomLevel;
+        }
+        this._map.setView(new Leaflet.LatLng(latitude, longitude), zoom);
+        this.updateZoomLevel();
+      }
+    });
   }
 
   private createGeoJson(data: DetailedGeoLocationDto[]) {
