@@ -11,5 +11,4 @@ import {HomeComponent} from "./pages/home/home.component";
   styleUrl: "./app.component.scss"
 })
 export class AppComponent {
-  title = "freeroam-frontend-angular";
 }
