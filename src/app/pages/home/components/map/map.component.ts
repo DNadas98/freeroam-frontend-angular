@@ -10,7 +10,7 @@ import * as Leaflet from "leaflet";
 import {Control, icon} from "leaflet";
 import {FormControl, ReactiveFormsModule} from "@angular/forms";
 import {AsyncPipe, NgForOf, NgIf} from "@angular/common";
-import {MatFormField, MatInput} from "@angular/material/input";
+import {MatFormField, MatInput, MatLabel} from "@angular/material/input";
 import {MapService} from "../../../../service/map/map.service";
 import {GeoLocation2d} from "../../../../model/map/GeoLocation2d";
 import {catchError, debounceTime, Observable, of, switchMap} from "rxjs";
@@ -22,6 +22,13 @@ import {
   AutoCompleteGeoLocationResult
 } from "../../../../model/map/AutoCompleteGeoLocationDto";
 import {MatIcon} from "@angular/material/icon";
+import {MatIconButton} from "@angular/material/button";
+import {
+  MatCard,
+  MatCardAvatar,
+  MatCardHeader,
+  MatCardTitle
+} from "@angular/material/card";
 import LayersObject = Control.LayersObject;
 
 @Component({
@@ -40,15 +47,21 @@ import LayersObject = Control.LayersObject;
     NgForOf,
     MatInput,
     MatFormField,
+    MatLabel,
     MatIcon,
-    NgIf
+    NgIf,
+    MatIconButton,
+    MatCard,
+    MatCardTitle,
+    MatCardHeader,
+    MatCardAvatar
   ],
   providers: [MapService]
 })
 export class MapComponent implements OnInit {
   private readonly _DEFAULT_ZOOM_LEVEL = 12;
   private readonly _ZOOMED_IN_ZOOM_LEVEL = 14;
-  private readonly _DETAILED_ZOOM_LEVEL: number = 12;
+  minElevationControl = new FormControl(1000);
   private readonly _MAX_ZOOM_LEVEL = 16;
   private readonly _MIN_ZOOM_LEVEL = 4;
   private readonly _markerIcon: Leaflet.Icon = icon({
@@ -96,6 +109,8 @@ export class MapComponent implements OnInit {
     })
   };
   private _summitsLayerVisible: boolean = false;
+  maxElevationControl = new FormControl();
+  private readonly _DETAILED_ZOOM_LEVEL: number = 10;
   private readonly _searchControl = new FormControl();
   private _geoLocation: GeoLocation2d = {latitude: 47.5, longitude: 19};  //Budapest
   private _currentZoomLevel: number = 12;
@@ -106,8 +121,16 @@ export class MapComponent implements OnInit {
   constructor(private mapService: MapService, private dialog: MatDialog, private zone: NgZone) {
   }
 
+  get summitsLayerVisible(): boolean {
+    return this._summitsLayerVisible;
+  }
+
   get currentZoomLevel(): number {
     return this._currentZoomLevel;
+  }
+
+  get DETAILED_ZOOM_LEVEL(): number {
+    return this._DETAILED_ZOOM_LEVEL;
   }
 
   get filteredOptions(): Observable<any[]> | undefined {
@@ -122,17 +145,21 @@ export class MapComponent implements OnInit {
 
   ngOnInit() {
     this.initializeGeoLocation();
-    this._filteredOptions = this._searchControl.valueChanges.pipe(
-      debounceTime(500),
-      switchMap(value =>
-        this.mapService.fetchSearchResults(value).pipe(
-          catchError(_err => {
-            return of([]);
-          })
-        )));
+    this.initializeFilterOptions();
+    this.initializeElevationControls();
   }
 
-  initializeGeoLocation() {
+  clearMinElevationFilter() {
+    this.minElevationControl.reset();
+    this.updateGeoJsonLayer();
+  }
+
+  clearMaxElevationFilter() {
+    this.maxElevationControl.reset();
+    this.updateGeoJsonLayer();
+  }
+
+  private initializeGeoLocation() {
     navigator.geolocation.getCurrentPosition(position => {
       this.updateGeoLocation(position.coords.latitude, position.coords.longitude);
     }, error => {
@@ -189,6 +216,32 @@ export class MapComponent implements OnInit {
     return `${location.name}`;
   }
 
+  private initializeFilterOptions() {
+    this._filteredOptions = this._searchControl.valueChanges.pipe(
+      debounceTime(500),
+      switchMap(value =>
+        this.mapService.fetchSearchResults(value).pipe(
+          catchError(_err => {
+            return of([]);
+          })
+        )));
+  }
+
+  private initializeElevationControls() {
+    this.minElevationControl.valueChanges.pipe(
+      debounceTime(300)
+    ).subscribe(() => {
+      this.updateGeoJsonLayer();
+    });
+
+    this.maxElevationControl.valueChanges.pipe(
+      debounceTime(300)
+    ).subscribe(() => {
+      this.updateGeoJsonLayer();
+    });
+  }
+
+
   private handleMapClick(e: Leaflet.LeafletMouseEvent) {
     if (!this._map) return;
     const {lat, lng} = e.latlng;
@@ -205,8 +258,9 @@ export class MapComponent implements OnInit {
         return;
       }
       if (this.currentZoomLevel >= this._DETAILED_ZOOM_LEVEL) {
-        console.log(this.currentZoomLevel);
-        this.mapService.fetchGeoJsonData(this._map.getBounds())
+        const minElevation = this.minElevationControl.value;
+        const maxElevation = this.maxElevationControl.value;
+        this.mapService.fetchGeoJsonData(this._map.getBounds(), minElevation, maxElevation)
           .subscribe(data => {
             const geoJson = this.createGeoJson(data);
             (this._overLayers["Summits"] as Leaflet.GeoJSON).clearLayers().addData(geoJson as any);

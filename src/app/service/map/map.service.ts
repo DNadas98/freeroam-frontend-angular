@@ -7,7 +7,7 @@ import {
   AutoCompleteGeoLocationDto,
   AutoCompleteGeoLocationResult
 } from "../../model/map/AutoCompleteGeoLocationDto";
-import * as Leaflet from "leaflet";
+import {LatLngBounds} from "leaflet";
 
 @Injectable({providedIn: "root"})
 export class MapService {
@@ -40,9 +40,9 @@ export class MapService {
     );
   }
 
-  fetchGeoJsonData(bounds: Leaflet.LatLngBounds): Observable<DetailedGeoLocationDto[]> {
-    const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
-    const query = `[out:json][timeout:25];(node["natural"="peak"](${bbox}););out body;`;
+  fetchGeoJsonData(bounds: LatLngBounds, minElevation: number | null, maxElevation: number | null): Observable<DetailedGeoLocationDto[]> {
+    //const query = `[out:json][timeout:25];(node["natural"="peak"](${bbox}););out body;`;
+    const query = this.buildQuery(bounds, minElevation, maxElevation);
     const url = `${environment.OVERPASS_API_URL}?data=${encodeURIComponent(query)}`;
 
     return this.http.get<any>(url).pipe(
@@ -52,6 +52,22 @@ export class MapService {
         return throwError(() => new Error("Failed to fetch peaks data"));
       })
     );
+  }
+
+  private buildQuery(bounds: LatLngBounds, minElevation: number | null, maxElevation: number | null) {
+    const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
+    let query = `[out:json][timeout:25];`;
+    query += `node["natural"="peak"](${bbox})`;
+
+    if (minElevation) {
+      query += `(if:t["ele"]>=${minElevation})`;
+    }
+    if (maxElevation) {
+      query += `(if:t["ele"]<=${maxElevation})`;
+    }
+
+    query += `; out body;`;
+    return query;
   }
 
   private toDetailedGeoLocationDtos(elements: any[]): DetailedGeoLocationDto[] {
