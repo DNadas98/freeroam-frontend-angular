@@ -19,15 +19,15 @@
     </div>
     <ng-container *ngIf="data.properties">
       <ng-container *ngIf="data.properties.address">
-        <div *ngIf="data.properties.address?.city"
+        <div *ngIf="data.properties.address.city"
              class="container flex justify-between items-center gap-2 my-1">
           <span class="text-lg font-medium">City:</span>
-          <span class="text-lg">{{ data.properties.address?.city }}</span>
+          <span class="text-lg">{{ data.properties.address.city }}</span>
         </div>
-        <div *ngIf="data.properties.address?.country"
+        <div *ngIf="data.properties.address.country"
              class="container flex justify-between items-center gap-2 my-1">
           <span class="text-lg font-medium">Country:</span>
-          <span class="text-lg">{{ data.properties.address?.country }}</span>
+          <span class="text-lg">{{ data.properties.address.country }}</span>
         </div>
       </ng-container>
     </ng-container>

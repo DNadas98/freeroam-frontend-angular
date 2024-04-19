@@ -11,7 +11,7 @@ import {LatLngBounds} from "leaflet";
 
 @Injectable({providedIn: "root"})
 export class MapService {
-  constructor(private http: HttpClient) {
+  constructor(private readonly http: HttpClient) {
   }
 
   fetchSearchResults(query: string): Observable<AutoCompleteGeoLocationResult[]> {
