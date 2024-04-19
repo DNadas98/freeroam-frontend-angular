@@ -16,42 +16,34 @@
                placeholder="Search Location"
                type="search">
       </mat-form-field>
-      <div *ngIf="summitsLayerVisible">
-        <div *ngIf="currentZoomLevel >= DETAILED_ZOOM_LEVEL; else
-      zoomTooLowContent"
-             class="elevation-filters flex flex-col md:flex-row gap-2 align-top justify-between w-full">
-          <mat-form-field appearance="fill"
-                          class="w-full opacity-85  text-opacity-100 placeholder-opacity-100">
-            <mat-label>Min Elevation (m)</mat-label>
-            <input [formControl]="minElevationControl" matInput max="9000"
-                   min="100" step="100" type="number"/>
-            <button (click)="clearMinElevationFilter()" aria-label="Clear" mat-icon-button
-                    matSuffix>
-              <mat-icon>close</mat-icon>
-            </button>
-          </mat-form-field>
-          <mat-form-field appearance="fill"
-                          class="w-full opacity-85  text-opacity-100 placeholder-opacity-100">
-            <mat-label>Max Elevation (m)</mat-label>
-            <input [formControl]="maxElevationControl" matInput max="9000"
-                   min="100" step="100" type="number"/>
-            <button (click)="clearMaxElevationFilter()" aria-label="Clear" mat-icon-button
-                    matSuffix>
-              <mat-icon>close</mat-icon>
-            </button>
-          </mat-form-field>
-        </div>
-        <ng-template #zoomTooLowContent>
-          <div class="flex w-full justify-center align-middle">
-            <mat-card
-              class="w-fit p-2 text-white opacity-75  text-opacity-100">
+      <div *ngIf="summitsLayerVisible" class="flex align-middle justify-center w-full">
+        <mat-card
+          class="w-full p-2 text-white opacity-75  text-opacity-100">
+          <div *ngIf="currentZoomLevel >= DETAILED_ZOOM_LEVEL; else zoomTooLowContent"
+               class="flex flex-col md:flex-row gap-2 items-center justify-between w-full">
+            <div class="flex flex-col sm:flex-row flex-wrap gap-1 items-center">
+              <span class="text-lg">
+                Elevation:
+              </span>
+              <span>Min: {{ minElevationControl.value }} m, </span>
+              <span>Max:{{maxElevationControl.value }} m</span>
+            </div>
+            <div class="w-full flex flex-1 opacity-100">
+              <mat-slider class="w-full flex flex-1" max="9000" min="0" step="100">
+                <input [formControl]="minElevationControl" matSliderStartThumb>
+                <input [formControl]="maxElevationControl" matSliderEndThumb>
+              </mat-slider>
+            </div>
+          </div>
+          <ng-template #zoomTooLowContent>
+            <div class="flex w-full justify-center align-middle">
               <div class="flex gap-2 flex-row align-baseline">
                 <mat-icon>zoom_in</mat-icon>
                 Zoom in for summits!
               </div>
-            </mat-card>
-          </div>
-        </ng-template>
+            </div>
+          </ng-template>
+        </mat-card>
       </div>
     </div>
     <mat-autocomplete #auto="matAutocomplete"

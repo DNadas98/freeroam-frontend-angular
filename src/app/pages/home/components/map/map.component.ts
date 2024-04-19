@@ -29,6 +29,7 @@ import {
   MatCardHeader,
   MatCardTitle
 } from "@angular/material/card";
+import {MatSlider, MatSliderRangeThumb} from "@angular/material/slider";
 import LayersObject = Control.LayersObject;
 
 @Component({
@@ -54,14 +55,15 @@ import LayersObject = Control.LayersObject;
     MatCard,
     MatCardTitle,
     MatCardHeader,
-    MatCardAvatar
+    MatCardAvatar,
+    MatSlider,
+    MatSliderRangeThumb
   ],
   providers: [MapService]
 })
 export class MapComponent implements OnInit {
   private readonly _DEFAULT_ZOOM_LEVEL = 12;
   private readonly _ZOOMED_IN_ZOOM_LEVEL = 14;
-  minElevationControl = new FormControl(1000);
   private readonly _MAX_ZOOM_LEVEL = 16;
   private readonly _MIN_ZOOM_LEVEL = 4;
   private readonly _markerIcon: Leaflet.Icon = icon({
@@ -109,7 +111,8 @@ export class MapComponent implements OnInit {
     })
   };
   private _summitsLayerVisible: boolean = false;
-  maxElevationControl = new FormControl();
+  minElevationControl = new FormControl(700);
+  maxElevationControl = new FormControl(4000);
   private readonly _DETAILED_ZOOM_LEVEL: number = 10;
   private readonly _searchControl = new FormControl();
   private _geoLocation: GeoLocation2d = {latitude: 47.5, longitude: 19};  //Budapest
