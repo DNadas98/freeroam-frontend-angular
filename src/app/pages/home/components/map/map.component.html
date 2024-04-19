@@ -53,8 +53,8 @@
         <span>{{ option.country_code }} - {{ option.name }}</span>
         <span> - </span>
         <span *ngIf="option.admin1">{{option.admin1}}, </span>
-        <span *ngIf="option.country">{{option.country}}</span>
-        <span *ngIf="option.elevation">, {{option.elevation}} m</span>
+        <span *ngIf="option.country">{{option.country}}, </span>
+        <span *ngIf="option.elevation">{{option.elevation}} m</span>
       </mat-option>
     </mat-autocomplete>
   </div>
