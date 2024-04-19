@@ -1,0 +1,35 @@
+<!-- profile.component.html -->
+<ng-container *ngIf="authService.getUser() | async as user; else loggedOutTemplate">
+  <button [matMenuTriggerFor]="menu" mat-icon-button>
+    <mat-icon>account_circle</mat-icon>
+  </button>
+  <mat-menu #menu="matMenu">
+    <div class="p-2 text-center">
+      <span>{{ authService.getUsername() | async }}</span>
+    </div>
+    <button (click)="authService.openAccountPage()" mat-menu-item>
+      <mat-icon>settings</mat-icon>
+      <span>Account</span>
+    </button>
+    <button (click)="authService.logout()" mat-menu-item>
+      <mat-icon>exit_to_app</mat-icon>
+      <span>Logout</span>
+    </button>
+  </mat-menu>
+</ng-container>
+
+<ng-template #loggedOutTemplate>
+  <button [matMenuTriggerFor]="menu" mat-icon-button>
+    <mat-icon>account_circle</mat-icon>
+  </button>
+  <mat-menu #menu="matMenu">
+    <button (click)="authService.login()" mat-menu-item>
+      <mat-icon>login</mat-icon>
+      <span>Sign In</span>
+    </button>
+    <button (click)="authService.register()" mat-menu-item>
+      <mat-icon>person_add</mat-icon>
+      <span>Sign Up</span>
+    </button>
+  </mat-menu>
+</ng-template>
