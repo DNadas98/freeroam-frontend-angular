@@ -25,7 +25,7 @@ export class AuthService {
   }
 
   register() {
-    window.location.href = `${this.oauthService.issuer}/protocol/openid-connect/registrations?client_id=${this.oauthService.clientId}&response_type=code&scope=${this.oauthService.scope}&redirect_uri=${this.oauthService.redirectUri}`;
+    window.open(`${this.oauthService.issuer}/protocol/openid-connect/registrations?client_id=${this.oauthService.clientId}&response_type=code&scope=${this.oauthService.scope}&redirect_uri=${this.oauthService.redirectUri}`, "_blank");
   }
 
   login() {
